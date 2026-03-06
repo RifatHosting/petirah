@@ -1,0 +1,3068 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PETIRAH 2.0 - Horror Game Indonesia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050505;
+            --fg: #e0dcd5;
+            --accent: #6b1c1c;
+            --accent-bright: #8b2525;
+            --muted: #2a2725;
+            --blood: #3a0a0a;
+            --gold: #8b7355;
+            --cold: #1a2030;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Crimson Text', serif;
+            background: var(--bg);
+            color: var(--fg);
+            overflow: hidden;
+            cursor: none;
+        }
+        
+        .title-font {
+            font-family: 'Cinzel', serif;
+        }
+        
+        #game-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        #custom-cursor {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s ease, width 0.2s, height 0.2s;
+        }
+        
+        #custom-cursor.hover {
+            width: 16px;
+            height: 16px;
+            background: rgba(139, 28, 28, 0.8);
+        }
+        
+        #crosshair {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            pointer-events: none;
+            display: none;
+        }
+        
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255,255,255,0.6);
+        }
+        
+        #crosshair::before {
+            width: 12px;
+            height: 1px;
+            left: -6px;
+            top: 0;
+        }
+        
+        #crosshair::after {
+            width: 1px;
+            height: 12px;
+            left: 0;
+            top: -6px;
+        }
+        
+        /* Main Menu */
+        #main-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            background: linear-gradient(180deg, #000 0%, #0a0505 30%, #050505 100%);
+        }
+        
+        #main-menu.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1.5s ease;
+        }
+        
+        .menu-bg-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.15;
+            filter: blur(3px) saturate(0.5);
+        }
+        
+        .menu-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center bottom, transparent 0%, rgba(0,0,0,0.8) 70%);
+        }
+        
+        .menu-content {
+            position: relative;
+            z-index: 10;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .game-logo {
+            margin-bottom: 60px;
+            text-align: center;
+            animation: logo-reveal 2s ease-out;
+        }
+        
+        @keyframes logo-reveal {
+            0% { opacity: 0; transform: translateY(30px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        .game-logo h1 {
+            font-size: clamp(48px, 10vw, 120px);
+            font-weight: 900;
+            letter-spacing: 0.3em;
+            color: var(--accent);
+            text-shadow: 
+                0 0 40px rgba(107, 28, 28, 0.5),
+                0 4px 8px rgba(0,0,0,0.8);
+            position: relative;
+        }
+        
+        .game-logo h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+        
+        .game-logo .subtitle {
+            font-size: clamp(12px, 2vw, 18px);
+            letter-spacing: 0.5em;
+            color: rgba(255,255,255,0.4);
+            margin-top: 20px;
+            text-transform: uppercase;
+        }
+        
+        .version-badge {
+            position: absolute;
+            top: -10px;
+            right: -40px;
+            background: var(--accent);
+            color: #fff;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 2px;
+            letter-spacing: 0.1em;
+        }
+        
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            animation: buttons-reveal 2s ease-out 0.5s both;
+        }
+        
+        @keyframes buttons-reveal {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        .menu-btn {
+            background: transparent;
+            border: 1px solid rgba(107, 28, 28, 0.3);
+            color: var(--fg);
+            padding: 16px 60px;
+            font-family: 'Cinzel', serif;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+        
+        .menu-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(107, 28, 28, 0.2), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+        
+        .menu-btn:hover {
+            border-color: var(--accent);
+            color: #fff;
+            text-shadow: 0 0 20px rgba(107, 28, 28, 0.5);
+        }
+        
+        .menu-btn:hover::before {
+            transform: translateX(100%);
+        }
+        
+        .menu-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .menu-footer {
+            position: absolute;
+            bottom: 30px;
+            text-align: center;
+            animation: fade-in 2s ease-out 1s both;
+        }
+        
+        @keyframes fade-in {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        
+        .menu-footer p {
+            font-size: 11px;
+            color: rgba(255,255,255,0.3);
+            letter-spacing: 0.2em;
+        }
+        
+        .warning-box {
+            margin-top: 40px;
+            padding: 15px 30px;
+            border: 1px solid rgba(139, 28, 28, 0.3);
+            background: rgba(139, 28, 28, 0.1);
+            max-width: 400px;
+            text-align: center;
+            animation: fade-in 2s ease-out 1.5s both;
+        }
+        
+        .warning-box p {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 0.1em;
+        }
+        
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            z-index: 900;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .loading-title {
+            font-size: 24px;
+            letter-spacing: 0.5em;
+            margin-bottom: 40px;
+            color: var(--accent);
+        }
+        
+        .loading-bar-container {
+            width: 300px;
+            height: 2px;
+            background: rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .loading-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-bright));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .loading-tip {
+            margin-top: 40px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.3);
+            font-style: italic;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        /* HUD */
+        .hud-container {
+            position: fixed;
+            z-index: 50;
+            pointer-events: none;
+        }
+        
+        #health-container {
+            top: 30px;
+            left: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .health-label {
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 5px;
+        }
+        
+        .health-hearts {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .heart {
+            width: 20px;
+            height: 20px;
+            position: relative;
+        }
+        
+        .heart svg {
+            width: 100%;
+            height: 100%;
+            fill: var(--accent);
+            filter: drop-shadow(0 0 5px rgba(107, 28, 28, 0.5));
+            transition: all 0.3s ease;
+        }
+        
+        .heart.empty svg {
+            fill: rgba(255,255,255,0.1);
+            filter: none;
+        }
+        
+        .heart.damaged svg {
+            animation: heart-damage 0.3s ease;
+        }
+        
+        @keyframes heart-damage {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+        
+        #stamina-container {
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+        
+        .stamina-bar {
+            width: 200px;
+            height: 3px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .stamina-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2d5a27, #4a8c3f);
+            width: 100%;
+            transition: width 0.2s ease;
+        }
+        
+        #battery-container {
+            top: 30px;
+            left: 30px;
+            margin-top: 60px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .battery-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.6;
+        }
+        
+        .battery-bar {
+            width: 60px;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .battery-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #b8860b, #ffd700);
+            width: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        #objective-container {
+            top: 30px;
+            right: 30px;
+            max-width: 280px;
+            background: rgba(0,0,0,0.6);
+            border-left: 2px solid var(--accent);
+            padding: 15px 20px;
+        }
+        
+        .objective-label {
+            font-size: 10px;
+            letter-spacing: 0.3em;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+        
+        .objective-text {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        #inventory-container {
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+        }
+        
+        .inventory-slot {
+            width: 50px;
+            height: 50px;
+            background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        
+        .inventory-slot.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(107, 28, 28, 0.4);
+        }
+        
+        .inventory-slot .key-hint {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 2px;
+            font-size: 10px;
+            padding: 1px 4px;
+        }
+        
+        .inventory-slot .item-icon {
+            font-size: 24px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+        
+        #interaction-prompt {
+            bottom: 160px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 13px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border: 1px solid rgba(107, 28, 28, 0.3);
+        }
+        
+        #interaction-prompt.visible {
+            opacity: 1;
+        }
+        
+        #interaction-prompt .key {
+            display: inline-block;
+            background: var(--accent);
+            padding: 2px 8px;
+            border-radius: 2px;
+            margin: 0 5px;
+        }
+        
+        /* Dialogue System */
+        #dialogue-container {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 650px;
+            background: rgba(5,5,5,0.95);
+            border: 1px solid rgba(107, 28, 28, 0.3);
+            padding: 25px 30px;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+        
+        #dialogue-container.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .dialogue-speaker {
+            font-size: 12px;
+            letter-spacing: 0.2em;
+            color: var(--accent);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .dialogue-text {
+            font-size: 16px;
+            line-height: 1.7;
+            margin-bottom: 15px;
+        }
+        
+        .dialogue-hint {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            text-align: right;
+        }
+        
+        /* Note Reader */
+        #note-reader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .note-paper {
+            background: linear-gradient(135deg, #d4c5a9 0%, #c4b599 100%);
+            color: #2a2015;
+            padding: 40px 50px;
+            max-width: 480px;
+            transform: rotate(-1deg);
+            box-shadow: 
+                0 20px 60px rgba(0,0,0,0.5),
+                inset 0 0 50px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .note-paper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+        
+        .note-title {
+            font-family: 'Cinzel', serif;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0,0,0,0.2);
+        }
+        
+        .note-content {
+            font-family: 'Crimson Text', serif;
+            font-size: 14px;
+            line-height: 2;
+            font-style: italic;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: rgba(0,0,0,0.5);
+            font-size: 20px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        
+        .close-btn:hover {
+            color: #000;
+        }
+        
+        /* Post-processing Effects */
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 80;
+            background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%);
+        }
+        
+        .film-grain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 81;
+            opacity: 0.04;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        }
+        
+        .chromatic-aberration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 82;
+            mix-blend-mode: screen;
+            opacity: 0;
+            background: linear-gradient(90deg, rgba(255,0,0,0.03) 0%, transparent 50%, rgba(0,0,255,0.03) 100%);
+            transition: opacity 0.5s;
+        }
+        
+        .blood-vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 79;
+            opacity: 0;
+            background: radial-gradient(ellipse at center, transparent 40%, rgba(60,0,0,0.6) 100%);
+            transition: opacity 0.3s;
+        }
+        
+        .low-health-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 78;
+            opacity: 0;
+            background: rgba(60,0,0,0.3);
+            animation: pulse-red 1s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-red {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 0.3; }
+        }
+        
+        /* Death Screen */
+        #death-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0);
+            z-index: 500;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: background 2s ease;
+        }
+        
+        #death-screen.active {
+            background: rgba(20,0,0,0.95);
+        }
+        
+        .death-title {
+            font-size: clamp(48px, 10vw, 100px);
+            font-weight: 900;
+            letter-spacing: 0.4em;
+            color: var(--accent);
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 1s ease 1s;
+        }
+        
+        #death-screen.active .death-title {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .death-subtitle {
+            font-size: 14px;
+            letter-spacing: 0.3em;
+            color: rgba(255,255,255,0.3);
+            margin-top: 20px;
+            opacity: 0;
+            transition: opacity 1s ease 2s;
+        }
+        
+        #death-screen.active .death-subtitle {
+            opacity: 1;
+        }
+        
+        .retry-btn {
+            margin-top: 60px;
+            opacity: 0;
+            transition: opacity 1s ease 2.5s;
+        }
+        
+        #death-screen.active .retry-btn {
+            opacity: 1;
+        }
+        
+        /* Jumpscare */
+        #jumpscare-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 600;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+        }
+        
+        .jumpscare-face {
+            font-size: 40vw;
+            color: #fff;
+            animation: shake 0.05s infinite;
+            text-shadow: 0 0 100px rgba(255,255,255,0.5);
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+            25% { transform: translate(-20px, 20px) rotate(-3deg) scale(1.02); }
+            50% { transform: translate(20px, -20px) rotate(3deg) scale(0.98); }
+            75% { transform: translate(-20px, -20px) rotate(-3deg) scale(1.01); }
+        }
+        
+        /* Pause Menu */
+        #pause-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5,5,5,0.95);
+            z-index: 400;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .pause-title {
+            font-size: 48px;
+            font-weight: 900;
+            letter-spacing: 0.5em;
+            color: var(--accent);
+            margin-bottom: 50px;
+        }
+        
+        /* Settings Panel */
+        #settings-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5,5,5,0.98);
+            z-index: 450;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .settings-content {
+            width: 90%;
+            max-width: 500px;
+        }
+        
+        .settings-title {
+            font-size: 24px;
+            letter-spacing: 0.3em;
+            color: var(--accent);
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        .settings-group {
+            margin-bottom: 30px;
+        }
+        
+        .settings-label {
+            font-size: 12px;
+            letter-spacing: 0.2em;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 10px;
+        }
+        
+        .settings-slider {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            appearance: none;
+            cursor: pointer;
+        }
+        
+        .settings-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        /* Win Screen */
+        #win-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #0a0a0a 0%, #1a1008 100%);
+            z-index: 500;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .win-title {
+            font-size: clamp(36px, 8vw, 72px);
+            font-weight: 900;
+            letter-spacing: 0.3em;
+            color: var(--gold);
+            margin-bottom: 30px;
+        }
+        
+        .win-message {
+            font-size: 16px;
+            line-height: 2;
+            text-align: center;
+            max-width: 500px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 50px;
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            color: rgba(255,255,255,0.4);
+            margin-top: 5px;
+        }
+        
+        /* Credits */
+        #credits-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 600;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 100px;
+            overflow-y: auto;
+        }
+        
+        .credits-scroll {
+            animation: scroll-up 30s linear infinite;
+        }
+        
+        @keyframes scroll-up {
+            0% { transform: translateY(100vh); }
+            100% { transform: translateY(-100%); }
+        }
+        
+        .credits-section {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .credits-section h3 {
+            font-size: 12px;
+            letter-spacing: 0.3em;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+        
+        .credits-section p {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        /* Control Hints */
+        #control-hints {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.3);
+            z-index: 100;
+        }
+        
+        .hint-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .hint-key {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-size: 10px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .game-logo h1 {
+                letter-spacing: 0.1em;
+            }
+            
+            .menu-btn {
+                padding: 12px 40px;
+                font-size: 12px;
+            }
+            
+            .stats-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            #objective-container {
+                max-width: 200px;
+            }
+            
+            .inventory-slot {
+                width: 40px;
+                height: 40px;
+            }
+        }
+        
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="custom-cursor"></div>
+    <div id="crosshair"></div>
+    
+    <!-- Main Menu -->
+    <div id="main-menu">
+        <div class="menu-overlay"></div>
+        <div class="menu-content">
+            <div class="game-logo">
+                <h1 class="title-font">PETIRAH</h1>
+                <span class="version-badge">2.0</span>
+                <p class="subtitle">Rumah Terkutuk di Balik Hutan</p>
+            </div>
+            
+            <div class="menu-buttons">
+                <button class="menu-btn" id="new-game-btn">PERMAINAN BARU</button>
+                <button class="menu-btn" id="continue-btn" style="opacity: 0.3" disabled>LANJUTKAN</button>
+                <button class="menu-btn" id="settings-btn">PENGATURAN</button>
+                <button class="menu-btn" id="credits-btn">KREDIT</button>
+            </div>
+            
+            <div class="warning-box">
+                <p>PERINGATAN: Game ini mengandung konten menakutkan, kilatan cahaya, dan suara yang mengganggu. Disarankan bermain dengan headphone di ruangan gelap.</p>
+            </div>
+            
+            <div class="menu-footer">
+                <p>CREATED BY RIFAT RADLI HIDAYAT</p>
+                <p style="margin-top: 5px; opacity: 0.5;">Powered by Three.js</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <h2 class="loading-title title-font">MEMUAT</h2>
+        <div class="loading-bar-container">
+            <div class="loading-bar-fill" id="loading-bar"></div>
+        </div>
+        <p class="loading-tip" id="loading-tip">Mempersiapkan nightmare...</p>
+    </div>
+    
+    <!-- Game Container -->
+    <div id="game-container"></div>
+    
+    <!-- Post-processing Effects -->
+    <div class="vignette"></div>
+    <div class="film-grain"></div>
+    <div class="chromatic-aberration" id="chromatic-aberration"></div>
+    <div class="blood-vignette" id="blood-vignette"></div>
+    <div class="low-health-overlay" id="low-health-overlay"></div>
+    
+    <!-- HUD -->
+    <div id="health-container" class="hud-container" style="display: none;">
+        <p class="health-label title-font">KESEHATAN</p>
+        <div class="health-hearts" id="health-hearts">
+            <div class="heart"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div>
+            <div class="heart"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div>
+            <div class="heart"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div>
+            <div class="heart"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div>
+            <div class="heart"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div>
+        </div>
+    </div>
+    
+    <div id="battery-container" class="hud-container" style="display: none;">
+        <svg class="battery-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="7" width="16" height="10" rx="1"/>
+            <path d="M21 11v2"/>
+            <rect x="5" y="9" width="12" height="6" fill="currentColor" opacity="0.3"/>
+        </svg>
+        <div class="battery-bar">
+            <div class="battery-fill" id="battery-fill"></div>
+        </div>
+    </div>
+    
+    <div id="stamina-container" class="hud-container" style="display: none;">
+        <div class="stamina-bar">
+            <div class="stamina-fill" id="stamina-fill"></div>
+        </div>
+    </div>
+    
+    <div id="objective-container" class="hud-container" style="display: none;">
+        <p class="objective-label title-font">TUJUAN</p>
+        <p class="objective-text" id="objective-text">Bangun dan cari tahu di mana kamu berada</p>
+    </div>
+    
+    <div id="inventory-container" class="hud-container" style="display: none;">
+        <div class="inventory-slot active" data-slot="0">
+            <span class="key-hint">1</span>
+        </div>
+        <div class="inventory-slot" data-slot="1">
+            <span class="key-hint">2</span>
+        </div>
+        <div class="inventory-slot" data-slot="2">
+            <span class="key-hint">3</span>
+        </div>
+        <div class="inventory-slot" data-slot="3">
+            <span class="key-hint">4</span>
+        </div>
+    </div>
+    
+    <div id="interaction-prompt" class="hud-container">
+        Tekan <span class="key">E</span> untuk mengambil <span id="interact-item">item</span>
+    </div>
+    
+    <!-- Dialogue -->
+    <div id="dialogue-container">
+        <p class="dialogue-speaker title-font" id="dialogue-speaker">KARAKTER</p>
+        <p class="dialogue-text" id="dialogue-text">Teks dialog akan muncul di sini...</p>
+        <p class="dialogue-hint">Tekan SPACE untuk melanjutkan</p>
+    </div>
+    
+    <!-- Note Reader -->
+    <div id="note-reader">
+        <div class="note-paper">
+            <button class="close-btn" id="close-note-btn">X</button>
+            <h3 class="note-title title-font" id="note-title">Judul Catatan</h3>
+            <p class="note-content" id="note-content">Isi catatan...</p>
+        </div>
+    </div>
+    
+    <!-- Control Hints -->
+    <div id="control-hints" style="display: none;">
+        <div class="hint-item"><span class="hint-key">WASD</span> Bergerak</div>
+        <div class="hint-item"><span class="hint-key">SHIFT</span> Lari</div>
+        <div class="hint-item"><span class="hint-key">F</span> Senter</div>
+        <div class="hint-item"><span class="hint-key">E</span> Interaksi</div>
+        <div class="hint-item"><span class="hint-key">ESC</span> Pause</div>
+    </div>
+    
+    <!-- Pause Menu -->
+    <div id="pause-menu">
+        <h2 class="pause-title title-font">JEDA</h2>
+        <div class="menu-buttons">
+            <button class="menu-btn" id="resume-btn">LANJUTKAN</button>
+            <button class="menu-btn" id="pause-settings-btn">PENGATURAN</button>
+            <button class="menu-btn" id="quit-btn">KELUAR KE MENU</button>
+        </div>
+    </div>
+    
+    <!-- Settings Panel -->
+    <div id="settings-panel">
+        <div class="settings-content">
+            <h2 class="settings-title title-font">PENGATURAN</h2>
+            
+            <div class="settings-group">
+                <p class="settings-label">VOLUME MUSIK</p>
+                <input type="range" class="settings-slider" id="music-volume" min="0" max="100" value="50">
+            </div>
+            
+            <div class="settings-group">
+                <p class="settings-label">VOLUME SUARA</p>
+                <input type="range" class="settings-slider" id="sfx-volume" min="0" max="100" value="70">
+            </div>
+            
+            <div class="settings-group">
+                <p class="settings-label">SENSITIVITAS MOUSE</p>
+                <input type="range" class="settings-slider" id="mouse-sensitivity" min="1" max="100" value="50">
+            </div>
+            
+            <div class="settings-group">
+                <p class="settings-label">KECERAHAN</p>
+                <input type="range" class="settings-slider" id="brightness" min="0" max="100" value="50">
+            </div>
+            
+            <div style="margin-top: 40px; text-align: center;">
+                <button class="menu-btn" id="close-settings-btn">KEMBALI</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Death Screen -->
+    <div id="death-screen">
+        <h1 class="death-title title-font">KAMU MATI</h1>
+        <p class="death-subtitle">Kegelapan telah menelanmu...</p>
+        <button class="menu-btn retry-btn" id="retry-btn">COBA LAGI</button>
+    </div>
+    
+    <!-- Jumpscare -->
+    <div id="jumpscare-container">
+        <div class="jumpscare-face title-font">X</div>
+    </div>
+    
+    <!-- Win Screen -->
+    <div id="win-screen">
+        <h1 class="win-title title-font">KAMU SELAMAT</h1>
+        <p class="win-message">Kamu berhasil melarikan diri dari rumah terkutuk ini. Tapi pertanyaan tetap tinggal... siapa yang sebenarnya mengurungmu di sini? Dan apakah ini benar-benar berakhir?</p>
+        
+        <div class="stats-container">
+            <div class="stat-item">
+                <p class="stat-value" id="stat-time">00:00</p>
+                <p class="stat-label title-font">WAKTU</p>
+            </div>
+            <div class="stat-item">
+                <p class="stat-value" id="stat-notes">0/3</p>
+                <p class="stat-label title-font">CATATAN</p>
+            </div>
+            <div class="stat-item">
+                <p class="stat-value" id="stat-deaths">0</p>
+                <p class="stat-label title-font">KEMATIAN</p>
+            </div>
+        </div>
+        
+        <button class="menu-btn" id="main-menu-btn">MENU UTAMA</button>
+    </div>
+    
+    <!-- Credits -->
+    <div id="credits-screen">
+        <div class="credits-scroll">
+            <div class="credits-section">
+                <h3 class="title-font">PETIRAH</h3>
+                <p>A Horror Experience</p>
+                <p style="margin-top: 20px;">Version 2.0</p>
+            </div>
+            
+            <div class="credits-section">
+                <h3 class="title-font">CREATED BY</h3>
+                <p style="font-size: 24px; font-weight: 700;">RIFAT RADLI HIDAYAT</p>
+            </div>
+            
+            <div class="credits-section">
+                <h3 class="title-font">GAME DESIGN</h3>
+                <p>Rifat Radli Hidayat</p>
+            </div>
+            
+            <div class="credits-section">
+                <h3 class="title-font">PROGRAMMING</h3>
+                <p>Rifat Radli Hidayat</p>
+            </div>
+            
+            <div class="credits-section">
+                <h3 class="title-font">3D ENGINE</h3>
+                <p>Three.js</p>
+                <p style="font-size: 12px; opacity: 0.5;">mrdoob and contributors</p>
+            </div>
+            
+            <div class="credits-section">
+                <h3 class="title-font">SPECIAL THANKS</h3>
+                <p>To everyone who played this game</p>
+                <p style="margin-top: 10px;">And to the horror genre for the inspiration</p>
+            </div>
+            
+            <div class="credits-section">
+                <h3 class="title-font">ASSETS</h3>
+                <p>Procedural Geometry - Custom</p>
+                <p>Textures - Procedural</p>
+                <p>Audio - Web Audio API Synthesis</p>
+                <p>Fonts - Google Fonts</p>
+            </div>
+            
+            <div class="credits-section" style="margin-top: 100px;">
+                <p style="font-size: 14px; opacity: 0.5;">PETIRAH 2.0</p>
+                <p style="font-size: 12px; opacity: 0.3;">All Rights Reserved</p>
+                <p style="font-size: 12px; opacity: 0.3; margin-top: 10px;">Created by Rifat Radli Hidayat</p>
+            </div>
+        </div>
+        <button class="menu-btn" style="position: fixed; bottom: 50px;" id="close-credits-btn">KEMBALI</button>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+        
+        // ============================================
+        // GAME CONFIGURATION
+        // ============================================
+        const CONFIG = {
+            player: {
+                height: 1.6,
+                walkSpeed: 4,
+                runSpeed: 7,
+                stamina: {
+                    max: 100,
+                    drain: 15,
+                    regen: 8
+                }
+            },
+            flashlight: {
+                maxBattery: 100,
+                drain: 1.5,
+                intensity: 3,
+                angle: Math.PI / 5,
+                distance: 15,
+                penumbra: 0.4
+            },
+            ghost: {
+                chaseSpeed: 2.5,
+                wanderSpeed: 0.8,
+                detectRange: 12,
+                attackRange: 1.5,
+                teleportInterval: 15000
+            },
+            audio: {
+                masterVolume: 0.7,
+                ambientVolume: 0.4
+            }
+        };
+        
+        // ============================================
+        // GAME STATE
+        // ============================================
+        const GameState = {
+            MENU: 'menu',
+            LOADING: 'loading',
+            PLAYING: 'playing',
+            PAUSED: 'paused',
+            DIALOGUE: 'dialogue',
+            READING_NOTE: 'reading_note',
+            DEAD: 'dead',
+            WIN: 'win',
+            CREDITS: 'credits'
+        };
+        
+        let currentState = GameState.MENU;
+        
+        const playerData = {
+            health: 5,
+            maxHealth: 5,
+            stamina: 100,
+            battery: 100,
+            sanity: 100,
+            inventory: [null, null, null, null],
+            selectedSlot: 0,
+            hasFlashlight: false,
+            hasKey: false,
+            notesFound: [],
+            objectivesCompleted: 0,
+            deaths: 0,
+            startTime: 0,
+            lastSavePosition: new THREE.Vector3(2, 1.6, 3)
+        };
+        
+        const objectives = [
+            { id: 0, text: "Bangun dan cari tahu di mana kamu berada", completed: false },
+            { id: 1, text: "Temukan senter di ruang tamu", completed: false },
+            { id: 2, text: "Jelajahi rumah dan temukan petunjuk", completed: false },
+            { id: 3, text: "Cari kunci untuk membuka pintu keluar", completed: false },
+            { id: 4, text: "Kumpulkan semua catatan (3)", completed: false },
+            { id: 5, text: "Keluar dari rumah ini", completed: false }
+        ];
+        
+        const notes = [
+            {
+                id: 0,
+                title: "Catatan Harian - 13 Juli 1987",
+                content: "Aku sudah 3 hari terdengar suara langkah kaki di loteng. Setiap malam jam 3 pagi, seperti ritual yang tidak pernah terlewat. Ibu bilang aku hanya halusinasi karena terlalu banyak membaca buku mistis, tapi aku tahu apa yang aku dengar...\n\nAda seseorang - atau sesuatu - di atas sana."
+            },
+            {
+                id: 1,
+                title: "Surat Tercabik",
+                content: "JANGAN PERNAH buka pintu kamar itu. Apapun yang terjadi.\n\nMereka sudah menunggu di dalam. Sudah 40 tahun mereka menunggu. Aku sudah coba memperingatkan semua orang, tapi tidak ada yang percaya.\n\nJika kamu membaca ini, kemungkinan besar kamu sudah terjebak. Temukan jalan keluar sebelum matahari terbenam. Setelah itu... mereka akan lebih kuat."
+            },
+            {
+                id: 2,
+                title: "Buku Harian Terakhir",
+                content: "Malam ini aku akan pergi dari rumah ini. Tidak, bukan pergi - melarikan diri.\n\nSemua yang tinggal di sini akan bernasib sama. Pertama Bapak, lalu Ibu, sekarang giliranku. Rumah ini tidak hanya dihantui - rumah ini hidup. Ia memakan siapapun yang berani masuk.\n\nJika kamu membaca ini, keluarlah. Jangan berhenti. Jangan menoleh. Apapun yang kamu dengar di belakangmu, JANGAN menoleh."
+            }
+        ];
+        
+        const dialogues = {
+            intro: [
+                { speaker: "???", text: "Ugh... kepala ku..." },
+                { speaker: "???", text: "Di mana aku? Bagaimana aku bisa sampai di sini?" },
+                { speaker: "???", text: "Rumah ini... terasa berbeda. Ada sesuatu yang salah..." },
+                { speaker: "???", text: "Aku harus mencari jalan keluar." }
+            ],
+            findFlashlight: [
+                { speaker: "Kamu", text: "Sebuah senter! Syukurlah, masih bisa dipakai." },
+                { speaker: "Kamu", text: "Baterainya masih ada, tapi tidak penuh. Harus berhemat." }
+            ],
+            findKey: [
+                { speaker: "Kamu", text: "Ini... kunci! Mungkin ini bisa membuka pintu keluar." },
+                { speaker: "Kamu", text: "Aku harus segera keluar dari sini." }
+            ],
+            findNote: [
+                { speaker: "Kamu", text: "Ada selembar kertas di sini... Sepertinya catatan seseorang." }
+            ],
+            ghostNearby: [
+                { speaker: "Kamu", text: "Ada sesuatu di sini... Aku bisa merasakannya." },
+                { speaker: "Kamu", text: "Tidak! Jangan mendekat!" }
+            ],
+            exitLocked: [
+                { speaker: "Kamu", text: "Pintunya terkunci. Aku butuh kunci untuk membukanya." }
+            ]
+        };
+        
+        // ============================================
+        // THREE.JS VARIABLES
+        // ============================================
+        let scene, camera, renderer, composer;
+        let controls;
+        let flashlight;
+        let ghost = null;
+        let clock;
+        
+        const movement = {
+            forward: false,
+            backward: false,
+            left: false,
+            right: false,
+            running: false
+        };
+        
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+        
+        let interactableObjects = [];
+        let collidableObjects = [];
+        let doorObjects = [];
+        
+        const raycaster = new THREE.Raycaster();
+        const interactionDistance = 3;
+        
+        // ============================================
+        // AUDIO SYSTEM
+        // ============================================
+        let audioContext = null;
+        let masterGain = null;
+        let musicGain = null;
+        let sfxGain = null;
+        
+        const audioSettings = {
+            musicVolume: 0.5,
+            sfxVolume: 0.7,
+            sensitivity: 0.5
+        };
+        
+        function initAudio() {
+            if (audioContext) return;
+            
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioContext.createGain();
+            masterGain.gain.value = CONFIG.audio.masterVolume;
+            masterGain.connect(audioContext.destination);
+            
+            musicGain = audioContext.createGain();
+            musicGain.gain.value = audioSettings.musicVolume;
+            musicGain.connect(masterGain);
+            
+            sfxGain = audioContext.createGain();
+            sfxGain.gain.value = audioSettings.sfxVolume;
+            sfxGain.connect(masterGain);
+        }
+        
+        function playSound(type, volume = 1) {
+            if (!audioContext) return;
+            
+            const now = audioContext.currentTime;
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            const filter = audioContext.createBiquadFilter();
+            
+            gain.gain.value = volume * audioSettings.sfxVolume;
+            
+            switch(type) {
+                case 'footstep':
+                    osc.type = 'sine';
+                    osc.frequency.value = 60 + Math.random() * 40;
+                    filter.type = 'lowpass';
+                    filter.frequency.value = 200;
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                    break;
+                    
+                case 'creak':
+                    osc.type = 'sawtooth';
+                    osc.frequency.value = 100 + Math.random() * 150;
+                    osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
+                    filter.type = 'bandpass';
+                    filter.frequency.value = 400;
+                    filter.Q.value = 5;
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                    break;
+                    
+                case 'heartbeat':
+                    osc.type = 'sine';
+                    osc.frequency.value = 50;
+                    filter.type = 'lowpass';
+                    filter.frequency.value = 100;
+                    gain.gain.value = volume * 0.4;
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                    
+                    setTimeout(() => {
+                        const osc2 = audioContext.createOscillator();
+                        const gain2 = audioContext.createGain();
+                        osc2.type = 'sine';
+                        osc2.frequency.value = 50;
+                        gain2.gain.value = volume * 0.3;
+                        gain2.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2);
+                        gain2.connect(sfxGain);
+                        osc2.connect(gain2);
+                        osc2.start();
+                        osc2.stop(audioContext.currentTime + 0.2);
+                    }, 200);
+                    return;
+                    
+                case 'ghost':
+                    osc.type = 'sine';
+                    osc.frequency.value = 200;
+                    osc.frequency.exponentialRampToValueAtTime(40, now + 1.5);
+                    filter.type = 'lowpass';
+                    filter.frequency.value = 300;
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+                    break;
+                    
+                case 'jumpscare':
+                    osc.type = 'sawtooth';
+                    osc.frequency.value = 800;
+                    osc.frequency.exponentialRampToValueAtTime(50, now + 0.5);
+                    filter.type = 'lowpass';
+                    filter.frequency.value = 2000;
+                    gain.gain.value = 0.9;
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    break;
+                    
+                case 'pickup':
+                    osc.type = 'sine';
+                    osc.frequency.value = 400;
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                    filter.type = 'lowpass';
+                    filter.frequency.value = 2000;
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                    break;
+                    
+                case 'door':
+                    osc.type = 'square';
+                    osc.frequency.value = 80;
+                    filter.type = 'lowpass';
+                    filter.frequency.value = 200;
+                    gain.gain.value = 0.3;
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    break;
+                    
+                case 'breath':
+                    const noise = audioContext.createBufferSource();
+                    const bufferSize = audioContext.sampleRate * 0.5;
+                    const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+                    noise.buffer = buffer;
+                    const noiseFilter = audioContext.createBiquadFilter();
+                    noiseFilter.type = 'bandpass';
+                    noiseFilter.frequency.value = 500;
+                    noiseFilter.Q.value = 1;
+                    const noiseGain = audioContext.createGain();
+                    noiseGain.gain.value = volume * 0.05;
+                    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    noise.connect(noiseFilter);
+                    noiseFilter.connect(noiseGain);
+                    noiseGain.connect(sfxGain);
+                    noise.start(now);
+                    noise.stop(now + 0.5);
+                    return;
+                    
+                default:
+                    osc.type = 'sine';
+                    osc.frequency.value = 440;
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+            }
+            
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(sfxGain);
+            osc.start(now);
+            osc.stop(now + 2);
+        }
+        
+        function playAmbient() {
+            if (!audioContext) return;
+            
+            // Low drone
+            const drone = audioContext.createOscillator();
+            const droneGain = audioContext.createGain();
+            const droneFilter = audioContext.createBiquadFilter();
+            
+            drone.type = 'sine';
+            drone.frequency.value = 40;
+            droneFilter.type = 'lowpass';
+            droneFilter.frequency.value = 100;
+            droneGain.gain.value = 0.02 * audioSettings.musicVolume;
+            
+            drone.connect(droneFilter);
+            droneFilter.connect(droneGain);
+            droneGain.connect(musicGain);
+            drone.start();
+            
+            // Random creaks
+            setInterval(() => {
+                if (currentState === GameState.PLAYING && Math.random() < 0.3) {
+                    playSound('creak', 0.1);
+                }
+            }, 5000);
+        }
+        
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        function init() {
+            clock = new THREE.Clock();
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+            scene.fog = new THREE.FogExp2(0x0a0505, 0.06);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.copy(playerData.lastSavePosition);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true,
+                powerPreference: "high-performance"
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 0.8;
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            document.getElementById('game-container').appendChild(renderer.domElement);
+            
+            // Controls
+            controls = new PointerLockControls(camera, document.body);
+            
+            // Post-processing
+            setupPostProcessing();
+            
+            // Lighting
+            setupLighting();
+            
+            // Build environment
+            buildHauntedHouse();
+            createGhost();
+            
+            // Event listeners
+            setupEventListeners();
+            
+            // Start render loop
+            animate();
+        }
+        
+        function setupPostProcessing() {
+            composer = new EffectComposer(renderer);
+            
+            const renderPass = new RenderPass(scene, camera);
+            composer.addPass(renderPass);
+            
+            // Bloom for candle lights
+            const bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                0.3,
+                0.4,
+                0.85
+            );
+            composer.addPass(bloomPass);
+            
+            // Custom color grading shader
+            const colorGradingShader = {
+                uniforms: {
+                    tDiffuse: { value: null },
+                    contrast: { value: 1.1 },
+                    saturation: { value: 0.8 },
+                    brightness: { value: 0.0 },
+                    vignetteAmount: { value: 0.4 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform sampler2D tDiffuse;
+                    uniform float contrast;
+                    uniform float saturation;
+                    uniform float brightness;
+                    uniform float vignetteAmount;
+                    varying vec2 vUv;
+                    
+                    void main() {
+                        vec4 color = texture2D(tDiffuse, vUv);
+                        
+                        // Contrast
+                        color.rgb = (color.rgb - 0.5) * contrast + 0.5;
+                        
+                        // Saturation
+                        float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+                        color.rgb = mix(vec3(gray), color.rgb, saturation);
+                        
+                        // Brightness
+                        color.rgb += brightness;
+                        
+                        // Vignette
+                        vec2 center = vUv - 0.5;
+                        float dist = length(center);
+                        float vignette = 1.0 - dist * vignetteAmount * 2.0;
+                        color.rgb *= vignette;
+                        
+                        // Slight sepia/cold tint
+                        color.r *= 0.95;
+                        color.b *= 1.05;
+                        
+                        gl_FragColor = color;
+                    }
+                `
+            };
+            
+            const colorGradingPass = new ShaderPass(colorGradingShader);
+            composer.addPass(colorGradingPass);
+        }
+        
+        function setupLighting() {
+            // Very dim ambient
+            const ambient = new THREE.AmbientLight(0x0a0508, 0.05);
+            scene.add(ambient);
+            
+            // Flashlight
+            flashlight = new THREE.SpotLight(0xffffee, 0, CONFIG.flashlight.distance, CONFIG.flashlight.angle, CONFIG.flashlight.penumbra, 1);
+            flashlight.castShadow = true;
+            flashlight.shadow.mapSize.width = 1024;
+            flashlight.shadow.mapSize.height = 1024;
+            flashlight.shadow.camera.near = 0.1;
+            flashlight.shadow.camera.far = CONFIG.flashlight.distance;
+            flashlight.shadow.bias = -0.001;
+            
+            camera.add(flashlight);
+            flashlight.position.set(0.2, -0.1, 0);
+            
+            const flashlightTarget = new THREE.Object3D();
+            flashlightTarget.position.set(0, 0, -1);
+            camera.add(flashlightTarget);
+            flashlight.target = flashlightTarget;
+            
+            scene.add(camera);
+        }
+        
+        // ============================================
+        // ENVIRONMENT BUILDING
+        // ============================================
+        function buildHauntedHouse() {
+            // Create textures
+            const textures = createTextures();
+            
+            // Materials
+            const materials = {
+                floor: new THREE.MeshStandardMaterial({
+                    map: textures.woodFloor,
+                    roughness: 0.9,
+                    metalness: 0.0
+                }),
+                wall: new THREE.MeshStandardMaterial({
+                    map: textures.wallpaper,
+                    roughness: 0.85,
+                    metalness: 0.0
+                }),
+                ceiling: new THREE.MeshStandardMaterial({
+                    color: 0x0a0808,
+                    roughness: 1.0
+                }),
+                door: new THREE.MeshStandardMaterial({
+                    map: textures.woodDoor,
+                    roughness: 0.8,
+                    metalness: 0.1
+                }),
+                furniture: new THREE.MeshStandardMaterial({
+                    map: textures.woodFurniture,
+                    roughness: 0.85,
+                    metalness: 0.0
+                })
+            };
+            
+            // Room definitions
+            const roomHeight = 3.2;
+            
+            // Build rooms
+            buildRoom({
+                name: 'bedroom',
+                x: 0, z: 0,
+                width: 7, depth: 8,
+                height: roomHeight,
+                materials
+            });
+            
+            buildRoom({
+                name: 'hallway',
+                x: 7, z: 0,
+                width: 2.5, depth: 16,
+                height: roomHeight,
+                materials
+            });
+            
+            buildRoom({
+                name: 'livingroom',
+                x: 9.5, z: 0,
+                width: 7, depth: 8,
+                height: roomHeight,
+                materials
+            });
+            
+            buildRoom({
+                name: 'kitchen',
+                x: 9.5, z: 8,
+                width: 7, depth: 8,
+                height: roomHeight,
+                materials
+            });
+            
+            buildRoom({
+                name: 'storage',
+                x: 0, z: 8,
+                width: 7, depth: 8,
+                height: roomHeight,
+                materials
+            });
+            
+            // Add doorways
+            createDoorway(7, 2.5, 3, 'z');
+            createDoorway(9.5, 2.5, 3, 'z');
+            createDoorway(13, 8, 2, 'x');
+            createDoorway(3.5, 8, 3, 'x');
+            
+            // Add furniture
+            addFurniture(materials);
+            
+            // Add items
+            addItems();
+            
+            // Add decorations
+            addDecorations();
+            
+            // Add candles for ambient light
+            addCandles();
+        }
+        
+        function createTextures() {
+            // Wood floor texture
+            const floorCanvas = document.createElement('canvas');
+            floorCanvas.width = 512;
+            floorCanvas.height = 512;
+            const floorCtx = floorCanvas.getContext('2d');
+            
+            // Base color
+            floorCtx.fillStyle = '#1f1610';
+            floorCtx.fillRect(0, 0, 512, 512);
+            
+            // Wood planks
+            for (let i = 0; i < 16; i++) {
+                const y = i * 32;
+                const variation = Math.random() * 20 - 10;
+                floorCtx.fillStyle = `rgb(${35 + variation}, ${25 + variation}, ${18 + variation})`;
+                floorCtx.fillRect(0, y, 512, 32);
+                
+                // Wood grain
+                for (let j = 0; j < 15; j++) {
+                    floorCtx.strokeStyle = `rgba(0,0,0,${0.1 + Math.random() * 0.2})`;
+                    floorCtx.beginPath();
+                    floorCtx.moveTo(Math.random() * 512, y);
+                    floorCtx.bezierCurveTo(
+                        Math.random() * 512, y + 10,
+                        Math.random() * 512, y + 20,
+                        Math.random() * 512, y + 32
+                    );
+                    floorCtx.stroke();
+                }
+                
+                // Knots
+                if (Math.random() < 0.2) {
+                    floorCtx.fillStyle = 'rgba(0,0,0,0.3)';
+                    floorCtx.beginPath();
+                    floorCtx.ellipse(Math.random() * 512, y + 16, 8, 15, 0, 0, Math.PI * 2);
+                    floorCtx.fill();
+                }
+            }
+            
+            const floorTexture = new THREE.CanvasTexture(floorCanvas);
+            floorTexture.wrapS = THREE.RepeatWrapping;
+            floorTexture.wrapT = THREE.RepeatWrapping;
+            floorTexture.repeat.set(4, 4);
+            
+            // Wallpaper texture
+            const wallCanvas = document.createElement('canvas');
+            wallCanvas.width = 512;
+            wallCanvas.height = 512;
+            const wallCtx = wallCanvas.getContext('2d');
+            
+            // Base color
+            wallCtx.fillStyle = '#1a1410';
+            wallCtx.fillRect(0, 0, 512, 512);
+            
+            // Old wallpaper pattern (very faded)
+            wallCtx.globalAlpha = 0.08;
+            for (let i = 0; i < 10; i++) {
+                for (let j = 0; j < 10; j++) {
+                    wallCtx.fillStyle = `hsl(20, 30%, ${15 + Math.random() * 10}%)`;
+                    wallCtx.beginPath();
+                    wallCtx.arc(i * 51.2 + 25.6, j * 51.2 + 25.6, 20, 0, Math.PI * 2);
+                    wallCtx.fill();
+                }
+            }
+            wallCtx.globalAlpha = 1;
+            
+            // Water stains
+            for (let i = 0; i < 8; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const gradient = wallCtx.createRadialGradient(x, y, 0, x, y, 80);
+                gradient.addColorStop(0, 'rgba(20,15,10,0.4)');
+                gradient.addColorStop(0.5, 'rgba(20,15,10,0.2)');
+                gradient.addColorStop(1, 'rgba(20,15,10,0)');
+                wallCtx.fillStyle = gradient;
+                wallCtx.fillRect(0, 0, 512, 512);
+            }
+            
+            // Cracks
+            wallCtx.strokeStyle = 'rgba(0,0,0,0.3)';
+            wallCtx.lineWidth = 1;
+            for (let i = 0; i < 5; i++) {
+                wallCtx.beginPath();
+                let x = Math.random() * 512;
+                let y = Math.random() * 512;
+                wallCtx.moveTo(x, y);
+                for (let j = 0; j < 5; j++) {
+                    x += Math.random() * 100 - 50;
+                    y += Math.random() * 100;
+                    wallCtx.lineTo(x, y);
+                }
+                wallCtx.stroke();
+            }
+            
+            const wallTexture = new THREE.CanvasTexture(wallCanvas);
+            wallTexture.wrapS = THREE.RepeatWrapping;
+            wallTexture.wrapT = THREE.RepeatWrapping;
+            wallTexture.repeat.set(2, 1);
+            
+            // Wood furniture texture
+            const furnitureCanvas = document.createElement('canvas');
+            furnitureCanvas.width = 256;
+            furnitureCanvas.height = 256;
+            const furnitureCtx = furnitureCanvas.getContext('2d');
+            
+            furnitureCtx.fillStyle = '#1a0f08';
+            furnitureCtx.fillRect(0, 0, 256, 256);
+            
+            for (let i = 0; i < 50; i++) {
+                furnitureCtx.strokeStyle = `rgba(0,0,0,${0.1 + Math.random() * 0.2})`;
+                furnitureCtx.beginPath();
+                furnitureCtx.moveTo(Math.random() * 256, 0);
+                furnitureCtx.bezierCurveTo(
+                    Math.random() * 256, 80,
+                    Math.random() * 256, 160,
+                    Math.random() * 256, 256
+                );
+                furnitureCtx.stroke();
+            }
+            
+            const furnitureTexture = new THREE.CanvasTexture(furnitureCanvas);
+            
+            // Door texture
+            const doorCanvas = document.createElement('canvas');
+            doorCanvas.width = 256;
+            doorCanvas.height = 512;
+            const doorCtx = doorCanvas.getContext('2d');
+            
+            doorCtx.fillStyle = '#1a1008';
+            doorCtx.fillRect(0, 0, 256, 512);
+            
+            // Door panels
+            doorCtx.strokeStyle = '#0f0805';
+            doorCtx.lineWidth = 3;
+            doorCtx.strokeRect(20, 20, 216, 200);
+            doorCtx.strokeRect(20, 240, 216, 200);
+            
+            // Wood grain
+            for (let i = 0; i < 30; i++) {
+                doorCtx.strokeStyle = `rgba(0,0,0,${0.1 + Math.random() * 0.15})`;
+                doorCtx.beginPath();
+                doorCtx.moveTo(Math.random() * 256, 0);
+                doorCtx.lineTo(Math.random() * 256, 512);
+                doorCtx.stroke();
+            }
+            
+            const doorTexture = new THREE.CanvasTexture(doorCanvas);
+            
+            return {
+                woodFloor: floorTexture,
+                wallpaper: wallTexture,
+                woodFurniture: furnitureTexture,
+                woodDoor: doorTexture
+            };
+        }
+        
+        function buildRoom(config) {
+            const { x, z, width, depth, height, materials, name } = config;
+            
+            // Floor
+            const floorGeo = new THREE.PlaneGeometry(width, depth);
+            const floor = new THREE.Mesh(floorGeo, materials.floor);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.set(x + width/2, 0, z + depth/2);
+            floor.receiveShadow = true;
+            floor.userData.room = name;
+            scene.add(floor);
+            
+            // Ceiling
+            const ceiling = new THREE.Mesh(floorGeo, materials.ceiling);
+            ceiling.rotation.x = Math.PI / 2;
+            ceiling.position.set(x + width/2, height, z + depth/2);
+            ceiling.userData.room = name;
+            scene.add(ceiling);
+            
+            // Walls
+            const wallHeight = height;
+            
+            // North wall
+            createWall(x, 0, z, width, wallHeight, 0.15, materials.wall, name);
+            
+            // South wall  
+            createWall(x, 0, z + depth, width, wallHeight, 0.15, materials.wall, name);
+            
+            // West wall
+            createWall(x, 0, z, 0.15, wallHeight, depth, materials.wall, name, true);
+            
+            // East wall
+            createWall(x + width, 0, z, 0.15, wallHeight, depth, materials.wall, name, true);
+        }
+        
+        function createWall(x, y, z, width, height, depth, material, room, isSide = false) {
+            const geo = new THREE.BoxGeometry(width, height, depth);
+            const wall = new THREE.Mesh(geo, material);
+            wall.position.set(x + (isSide ? 0 : width/2), y + height/2, z + (isSide ? depth/2 : 0));
+            wall.castShadow = true;
+            wall.receiveShadow = true;
+            wall.userData.room = room;
+            wall.userData.isWall = true;
+            scene.add(wall);
+            
+            // Only add solid walls to collision
+            if (width > 0.5 || depth > 0.5) {
+                collidableObjects.push(wall);
+            }
+            
+            return wall;
+        }
+        
+        function createDoorway(x, z, width, orientation) {
+            // This creates a gap in walls - actual gap creation handled in wall placement
+            // For now, this is a marker function
+        }
+        
+        function addFurniture(materials) {
+            // Bedroom furniture
+            // Bed
+            const bedFrame = createMesh('box', [2, 0.4, 3], materials.furniture);
+            bedFrame.position.set(2, 0.2, 2);
+            bedFrame.castShadow = true;
+            bedFrame.receiveShadow = true;
+            scene.add(bedFrame);
+            collidableObjects.push(bedFrame);
+            
+            // Mattress
+            const mattress = createMesh('box', [1.8, 0.25, 2.8], new THREE.MeshStandardMaterial({ color: 0x3a3530, roughness: 0.95 }));
+            mattress.position.set(2, 0.52, 2);
+            scene.add(mattress);
+            
+            // Wardrobe
+            const wardrobe = createMesh('box', [1.2, 2.2, 0.6], materials.furniture);
+            wardrobe.position.set(1.2, 1.1, 6.5);
+            wardrobe.castShadow = true;
+            wardrobe.receiveShadow = true;
+            scene.add(wardrobe);
+            collidableObjects.push(wardrobe);
+            
+            // Living room
+            // Table
+            const tableTop = createMesh('box', [2.5, 0.08, 1.2], materials.furniture);
+            tableTop.position.set(13, 0.75, 4);
+            tableTop.castShadow = true;
+            tableTop.receiveShadow = true;
+            scene.add(tableTop);
+            
+            // Table legs
+            const legPositions = [[-1.1, -0.5], [1.1, -0.5], [-1.1, 0.5], [1.1, 0.5]];
+            legPositions.forEach(([lx, lz]) => {
+                const leg = createMesh('box', [0.08, 0.75, 0.08], materials.furniture);
+                leg.position.set(13 + lx, 0.375, 4 + lz);
+                leg.castShadow = true;
+                scene.add(leg);
+            });
+            
+            // Chairs
+            for (let i = 0; i < 2; i++) {
+                const chairSeat = createMesh('box', [0.45, 0.05, 0.45], materials.furniture);
+                chairSeat.position.set(13 + (i === 0 ? -1.8 : 1.8), 0.45, 4);
+                chairSeat.castShadow = true;
+                scene.add(chairSeat);
+                collidableObjects.push(chairSeat);
+                
+                const chairBack = createMesh('box', [0.45, 0.5, 0.05], materials.furniture);
+                chairBack.position.set(13 + (i === 0 ? -1.8 : 1.8), 0.75, 4 + 0.2);
+                chairBack.castShadow = true;
+                scene.add(chairBack);
+            }
+            
+            // Kitchen
+            // Counter
+            const counter = createMesh('box', [5, 0.9, 0.7], new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.7 }));
+            counter.position.set(12, 0.45, 11.5);
+            counter.castShadow = true;
+            counter.receiveShadow = true;
+            scene.add(counter);
+            collidableObjects.push(counter);
+            
+            // Storage
+            // Shelves
+            for (let i = 0; i < 3; i++) {
+                const shelf = createMesh('box', [2.5, 0.08, 0.5], materials.furniture);
+                shelf.position.set(3.5, 1 + i * 0.7, 12);
+                shelf.castShadow = true;
+                scene.add(shelf);
+            }
+            
+            // Crate
+            const crate = createMesh('box', [0.8, 0.8, 0.8], materials.furniture);
+            crate.position.set(1, 0.4, 13);
+            crate.castShadow = true;
+            crate.receiveShadow = true;
+            scene.add(crate);
+            collidableObjects.push(crate);
+        }
+        
+        function addItems() {
+            // Flashlight
+            const flashlightGeo = new THREE.Group();
+            const body = createMesh('cylinder', [0.04, 0.06, 0.25], new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.3 }));
+            body.rotation.x = Math.PI / 2;
+            flashlightGeo.add(body);
+            
+            const lens = createMesh('circle', [0.035], new THREE.MeshStandardMaterial({ color: 0xffffee, emissive: 0x444422, emissiveIntensity: 0.5 }));
+            lens.position.z = 0.125;
+            flashlightGeo.add(lens);
+            
+            flashlightGeo.position.set(13, 0.85, 4);
+            flashlightGeo.userData = { type: 'flashlight', interactable: true, name: 'Senter' };
+            scene.add(flashlightGeo);
+            interactableObjects.push(flashlightGeo);
+            
+            // Key
+            const keyGroup = new THREE.Group();
+            const keyHead = createMesh('torus', [0.03, 0.01], new THREE.MeshStandardMaterial({ color: 0xb8860b, metalness: 0.9, roughness: 0.2 }));
+            keyGroup.add(keyHead);
+            
+            const keyShaft = createMesh('box', [0.015, 0.08, 0.01], new THREE.MeshStandardMaterial({ color: 0xb8860b, metalness: 0.9, roughness: 0.2 }));
+            keyShaft.position.y = -0.05;
+            keyGroup.add(keyShaft);
+            
+            keyGroup.position.set(3.5, 1.2, 12);
+            keyGroup.userData = { type: 'key', interactable: true, name: 'Kunci' };
+            scene.add(keyGroup);
+            interactableObjects.push(keyGroup);
+            
+            // Notes
+            const notePositions = [
+                { x: 1.2, y: 1.15, z: 6.5 }, // On wardrobe
+                { x: 12, y: 0.95, z: 11.5 }, // Kitchen counter
+                { x: 3.5, y: 2.35, z: 12 } // Top shelf
+            ];
+            
+            notePositions.forEach((pos, index) => {
+                const note = createMesh('plane', [0.15, 0.2], new THREE.MeshStandardMaterial({
+                    color: 0xd4c5a9,
+                    side: THREE.DoubleSide,
+                    roughness: 1
+                }));
+                note.rotation.x = -Math.PI / 2;
+                note.rotation.z = Math.random() * 0.4 - 0.2;
+                note.position.set(pos.x, pos.y, pos.z);
+                note.userData = { type: 'note', index: index, interactable: true, name: 'Catatan' };
+                scene.add(note);
+                interactableObjects.push(note);
+            });
+            
+            // Exit door
+            const exitDoor = createMesh('box', [1.2, 2.4, 0.15], new THREE.MeshStandardMaterial({ map: createTextures().woodDoor, roughness: 0.8 }));
+            exitDoor.position.set(16.5, 1.2, 16);
+            exitDoor.castShadow = true;
+            exitDoor.userData = { type: 'exitDoor', interactable: true, locked: true, name: 'Pintu Keluar' };
+            scene.add(exitDoor);
+            interactableObjects.push(exitDoor);
+            doorObjects.push(exitDoor);
+        }
+        
+        function addDecorations() {
+            // Cobwebs
+            const webMaterial = new THREE.MeshBasicMaterial({
+                color: 0x888888,
+                transparent: true,
+                opacity: 0.15,
+                side: THREE.DoubleSide
+            });
+            
+            const webPositions = [
+                [0.5, 2.8, 0.5], [6.5, 2.8, 0.5], [0.5, 2.8, 7.5],
+                [10, 2.8, 0.5], [16, 2.8, 0.5], [10, 2.8, 7.5],
+                [16, 2.8, 7.5], [0.5, 2.8, 15.5], [6.5, 2.8, 15.5]
+            ];
+            
+            webPositions.forEach(([wx, wy, wz]) => {
+                const web = createMesh('plane', [1.5, 1.5], webMaterial);
+                web.position.set(wx, wy, wz);
+                web.rotation.set(-Math.PI/4 + Math.random() * 0.3, Math.random() * Math.PI, Math.random() * 0.5);
+                scene.add(web);
+            });
+            
+            // Blood stains
+            const bloodMaterial = new THREE.MeshBasicMaterial({
+                color: 0x3a0505,
+                transparent: true,
+                opacity: 0.4
+            });
+            
+            for (let i = 0; i < 8; i++) {
+                const stain = createMesh('circle', [0.2 + Math.random() * 0.4], bloodMaterial);
+                stain.rotation.x = -Math.PI / 2;
+                stain.position.set(
+                    2 + Math.random() * 14,
+                    0.01,
+                    2 + Math.random() * 12
+                );
+                scene.add(stain);
+            }
+            
+            // Broken items
+            const brokenGlass = createMesh('plane', [0.3, 0.3], new THREE.MeshStandardMaterial({
+                color: 0x334455,
+                transparent: true,
+                opacity: 0.4,
+                roughness: 0.1,
+                metalness: 0.9
+            }));
+            brokenGlass.rotation.x = -Math.PI / 2;
+            brokenGlass.position.set(12, 0.01, 5);
+            scene.add(brokenGlass);
+            
+            // Picture frames (empty)
+            const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x1a0f05, roughness: 0.8 });
+            const framePositions = [
+                [1, 1.8, 0.1], [5, 2, 0.1], [14, 2.2, 0.1],
+                [0.1, 1.6, 4, true], [0.1, 1.6, 12, true],
+                [16.85, 1.8, 4, true]
+            ];
+            
+            framePositions.forEach(([fx, fy, fz, rotate = false]) => {
+                const frame = createMesh('box', [0.6, 0.8, 0.05], frameMaterial);
+                frame.position.set(fx, fy, fz);
+                if (rotate) frame.rotation.y = Math.PI / 2;
+                frame.castShadow = true;
+                scene.add(frame);
+                
+                // Dark canvas
+                const canvas = createMesh('plane', [0.5, 0.7], new THREE.MeshStandardMaterial({ color: 0x0a0505 }));
+                canvas.position.set(fx + (rotate ? 0 : 0), fy, fz + (rotate ? 0 : 0.03));
+                if (rotate) canvas.rotation.y = Math.PI / 2;
+                scene.add(canvas);
+            });
+        }
+        
+        function addCandles() {
+            const candlePositions = [
+                [3, 0.85, 2], // Bedroom - on bed frame
+                [13, 0.85, 4], // Living room - on table
+                [14, 0.95, 11.5], // Kitchen counter
+                [1, 0.85, 13] // Storage - on crate
+            ];
+            
+            candlePositions.forEach(([cx, cy, cz], index) => {
+                // Candle body
+                const candle = createMesh('cylinder', [0.02, 0.02, 0.12], new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.9 }));
+                candle.position.set(cx, cy, cz);
+                scene.add(candle);
+                
+                // Flame
+                const flameMaterial = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+                const flame = createMesh('sphere', [0.015], flameMaterial);
+                flame.position.set(cx, cy + 0.08, cz);
+                flame.userData = { candleFlame: true, baseY: cy + 0.08 };
+                scene.add(flame);
+                
+                // Light
+                const candleLight = new THREE.PointLight(0xff6622, 0.3, 2.5);
+                candleLight.position.set(cx, cy + 0.1, cz);
+                candleLight.castShadow = false;
+                scene.add(candleLight);
+                
+                // Store for animation
+                if (!window.candles) window.candles = [];
+                window.candles.push({ flame, light: candleLight, baseY: cy + 0.08, index });
+            });
+        }
+        
+        function createMesh(type, params, material) {
+            let geometry;
+            
+            switch(type) {
+                case 'box':
+                    geometry = new THREE.BoxGeometry(params[0], params[1], params[2]);
+                    break;
+                case 'cylinder':
+                    geometry = new THREE.CylinderGeometry(params[0], params[1], params[2], 16);
+                    break;
+                case 'sphere':
+                    geometry = new THREE.SphereGeometry(params[0], 16, 16);
+                    break;
+                case 'plane':
+                    geometry = new THREE.PlaneGeometry(params[0], params[1]);
+                    break;
+                case 'circle':
+                    geometry = new THREE.CircleGeometry(params[0], 16);
+                    break;
+                case 'torus':
+                    geometry = new THREE.TorusGeometry(params[0], params[1], 8, 16);
+                    break;
+                default:
+                    geometry = new THREE.BoxGeometry(1, 1, 1);
+            }
+            
+            return new THREE.Mesh(geometry, material);
+        }
+        
+        // ============================================
+        // GHOST
+        // ============================================
+        function createGhost() {
+            const ghostGroup = new THREE.Group();
+            
+            // Ghost body - elongated humanoid shape
+            const bodyGeo = new THREE.CapsuleGeometry(0.3, 1.5, 8, 16);
+            const ghostMaterial = new THREE.MeshStandardMaterial({
+                color: 0x0a0a15,
+                transparent: true,
+                opacity: 0.4,
+                roughness: 1,
+                emissive: 0x050510,
+                emissiveIntensity: 0.3
+            });
+            
+            const body = new THREE.Mesh(bodyGeo, ghostMaterial);
+            body.position.y = 0.9;
+            ghostGroup.add(body);
+            
+            // Ghost head
+            const headGeo = new THREE.SphereGeometry(0.25, 16, 16);
+            const head = new THREE.Mesh(headGeo, ghostMaterial);
+            head.position.y = 1.85;
+            head.scale.set(1, 1.2, 1);
+            ghostGroup.add(head);
+            
+            // Eyes (dark voids)
+            const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            const leftEye = createMesh('sphere', [0.05], eyeMaterial);
+            leftEye.position.set(-0.08, 1.9, 0.2);
+            ghostGroup.add(leftEye);
+            
+            const rightEye = createMesh('sphere', [0.05], eyeMaterial);
+            rightEye.position.set(0.08, 1.9, 0.2);
+            ghostGroup.add(rightEye);
+            
+            // Ghost light
+            const ghostLight = new THREE.PointLight(0x2222aa, 0, 4);
+            ghostLight.position.y = 1;
+            ghostGroup.add(ghostLight);
+            
+            ghostGroup.position.set(20, 0, 10);
+            ghostGroup.visible = false;
+            ghostGroup.userData = {
+                state: 'idle',
+                lastUpdate: 0,
+                light: ghostLight,
+                speed: CONFIG.ghost.wanderSpeed
+            };
+            
+            scene.add(ghostGroup);
+            ghost = ghostGroup;
+        }
+        
+        function updateGhost(delta) {
+            if (!ghost || currentState !== GameState.PLAYING) return;
+            
+            const time = clock.getElapsedTime();
+            const playerPos = camera.position.clone();
+            const ghostPos = ghost.position.clone();
+            const distance = playerPos.distanceTo(ghostPos);
+            
+            // Floating animation
+            ghost.position.y = Math.sin(time * 2) * 0.05;
+            ghost.rotation.y = Math.sin(time * 0.5) * 0.2;
+            
+            // State machine
+            if (distance < CONFIG.ghost.detectRange) {
+                // Chase mode
+                ghost.visible = true;
+                ghost.userData.light.intensity = 0.8;
+                
+                const dir = new THREE.Vector3().subVectors(playerPos, ghostPos).normalize();
+                ghost.position.x += dir.x * CONFIG.ghost.chaseSpeed * delta;
+                ghost.position.z += dir.z * CONFIG.ghost.chaseSpeed * delta;
+                
+                ghost.lookAt(playerPos.x, ghost.position.y, playerPos.z);
+                
+                // Play ghost sound
+                if (time - ghost.userData.lastUpdate > 4) {
+                    playSound('ghost', 0.3);
+                    ghost.userData.lastUpdate = time;
+                }
+                
+                // Attack
+                if (distance < CONFIG.ghost.attackRange) {
+                    triggerJumpscare();
+                }
+            } else {
+                // Wander mode
+                ghost.userData.light.intensity = 0.2;
+                
+                // Random teleport
+                if (Math.random() < 0.002) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = 8 + Math.random() * 8;
+                    ghost.position.x = playerPos.x + Math.cos(angle) * dist;
+                    ghost.position.z = playerPos.z + Math.sin(angle) * dist;
+                    
+                    // Keep in bounds
+                    ghost.position.x = Math.max(1, Math.min(16, ghost.position.x));
+                    ghost.position.z = Math.max(1, Math.min(15, ghost.position.z));
+                }
+            }
+        }
+        
+        // ============================================
+        // GAME LOGIC
+        // ============================================
+        function startGame() {
+            initAudio();
+            
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('loading-screen').style.display = 'flex';
+            
+            const tips = [
+                "Tips: Jaga baterai sentermu...",
+                "Tips: Dengarkan suara di sekitarmu...",
+                "Tips: Jangan berlari terlalu lama...",
+                "Tips: Periksa setiap sudut ruangan...",
+                "Memuat tekstur...",
+                "Menyiapkan nightmare..."
+            ];
+            
+            let progress = 0;
+            let tipIndex = 0;
+            
+            const loadingInterval = setInterval(() => {
+                progress += 2 + Math.random() * 3;
+                document.getElementById('loading-bar').style.width = Math.min(progress, 100) + '%';
+                
+                if (progress >= tipIndex * 25 + 25 && tipIndex < tips.length) {
+                    document.getElementById('loading-tip').textContent = tips[tipIndex];
+                    tipIndex++;
+                }
+                
+                if (progress >= 100) {
+                    clearInterval(loadingInterval);
+                    
+                    setTimeout(() => {
+                        document.getElementById('loading-screen').style.display = 'none';
+                        showHUD(true);
+                        currentState = GameState.PLAYING;
+                        playerData.startTime = Date.now();
+                        controls.lock();
+                        
+                        showDialogue('intro');
+                        updateObjective(0);
+                        
+                        playAmbient();
+                    }, 500);
+                }
+            }, 50);
+            
+            // Set spawn position
+            camera.position.set(2, CONFIG.player.height, 3);
+        }
+        
+        function showHUD(show) {
+            const hudElements = [
+                'health-container',
+                'battery-container', 
+                'stamina-container',
+                'objective-container',
+                'inventory-container',
+                'control-hints'
+            ];
+            
+            hudElements.forEach(id => {
+                document.getElementById(id).style.display = show ? 'block' : 'none';
+            });
+        }
+        
+        function showDialogue(dialogueKey) {
+            const dialogueContainer = document.getElementById('dialogue-container');
+            const speaker = document.getElementById('dialogue-speaker');
+            const text = document.getElementById('dialogue-text');
+            
+            const dialogueList = dialogues[dialogueKey];
+            if (!dialogueList || dialogueList.length === 0) return;
+            
+            let index = 0;
+            
+            function showNext() {
+                if (index >= dialogueList.length) {
+                    dialogueContainer.classList.remove('active');
+                    currentState = GameState.PLAYING;
+                    controls.lock();
+                    return;
+                }
+                
+                currentState = GameState.DIALOGUE;
+                dialogueContainer.classList.add('active');
+                speaker.textContent = dialogueList[index].speaker;
+                text.textContent = dialogueList[index].text;
+                index++;
+            }
+            
+            showNext();
+            
+            window.nextDialogue = showNext;
+        }
+        
+        function updateObjective(id) {
+            objectives[id].completed = true;
+            playerData.objectivesCompleted = Math.max(playerData.objectivesCompleted, id + 1);
+            
+            // Find next incomplete objective
+            for (let i = 0; i < objectives.length; i++) {
+                if (!objectives[i].completed) {
+                    document.getElementById('objective-text').textContent = objectives[i].text;
+                    return;
+                }
+            }
+        }
+        
+        function showNote(noteIndex) {
+            const note = notes[noteIndex];
+            if (!note) return;
+            
+            document.getElementById('note-title').textContent = note.title;
+            document.getElementById('note-content').textContent = note.content;
+            document.getElementById('note-reader').style.display = 'flex';
+            currentState = GameState.READING_NOTE;
+            controls.unlock();
+        }
+        
+        function closeNote() {
+            document.getElementById('note-reader').style.display = 'none';
+            currentState = GameState.PLAYING;
+            controls.lock();
+        }
+        
+        function interact(object) {
+            const type = object.userData.type;
+            
+            switch(type) {
+                case 'flashlight':
+                    playerData.hasFlashlight = true;
+                    playerData.inventory[0] = { type: 'flashlight', name: 'Senter', icon: 'F' };
+                    flashlight.intensity = CONFIG.flashlight.intensity;
+                    updateInventoryUI();
+                    removeObject(object);
+                    showDialogue('findFlashlight');
+                    updateObjective(1);
+                    playSound('pickup');
+                    break;
+                    
+                case 'key':
+                    playerData.hasKey = true;
+                    playerData.inventory[1] = { type: 'key', name: 'Kunci', icon: 'K' };
+                    updateInventoryUI();
+                    removeObject(object);
+                    showDialogue('findKey');
+                    updateObjective(3);
+                    playSound('pickup');
+                    break;
+                    
+                case 'note':
+                    const noteIndex = object.userData.index;
+                    if (!playerData.notesFound.includes(noteIndex)) {
+                        playerData.notesFound.push(noteIndex);
+                        showNote(noteIndex);
+                        
+                        if (playerData.notesFound.length >= 3) {
+                            updateObjective(4);
+                        }
+                    }
+                    break;
+                    
+                case 'exitDoor':
+                    if (playerData.hasKey) {
+                        winGame();
+                    } else {
+                        showDialogue('exitLocked');
+                        playSound('door');
+                    }
+                    break;
+            }
+        }
+        
+        function removeObject(object) {
+            object.visible = false;
+            interactableObjects = interactableObjects.filter(o => o !== object);
+        }
+        
+        function updateInventoryUI() {
+            playerData.inventory.forEach((item, index) => {
+                const slot = document.querySelector(`.inventory-slot[data-slot="${index}"]`);
+                if (slot && item) {
+                    slot.innerHTML = `<span class="item-icon">${item.icon}</span><span class="key-hint">${index + 1}</span>`;
+                }
+            });
+        }
+        
+        function updateHealthUI() {
+            const hearts = document.querySelectorAll('.heart');
+            hearts.forEach((heart, index) => {
+                if (index < playerData.health) {
+                    heart.classList.remove('empty');
+                } else {
+                    heart.classList.add('empty');
+                }
+            });
+        }
+        
+        function takeDamage(amount) {
+            playerData.health = Math.max(0, playerData.health - amount);
+            updateHealthUI();
+            
+            // Visual feedback
+            document.getElementById('blood-vignette').style.opacity = '0.6';
+            setTimeout(() => {
+                document.getElementById('blood-vignette').style.opacity = '0';
+            }, 300);
+            
+            // Low health effect
+            if (playerData.health <= 2) {
+                document.getElementById('low-health-overlay').style.opacity = '1';
+            }
+            
+            if (playerData.health <= 0) {
+                triggerJumpscare();
+            }
+        }
+        
+        function triggerJumpscare() {
+            if (currentState === GameState.DEAD) return;
+            
+            currentState = GameState.DEAD;
+            playerData.deaths++;
+            
+            playSound('jumpscare');
+            
+            const jumpscareContainer = document.getElementById('jumpscare-container');
+            jumpscareContainer.style.display = 'flex';
+            
+            setTimeout(() => {
+                jumpscareContainer.style.display = 'none';
+                document.getElementById('death-screen').style.display = 'flex';
+                document.getElementById('death-screen').classList.add('active');
+            }, 600);
+        }
+        
+        function retryGame() {
+            playerData.health = playerData.maxHealth;
+            playerData.stamina = 100;
+            playerData.battery = 100;
+            
+            updateHealthUI();
+            
+            document.getElementById('death-screen').classList.remove('active');
+            document.getElementById('death-screen').style.display = 'none';
+            document.getElementById('low-health-overlay').style.opacity = '0';
+            
+            camera.position.copy(playerData.lastSavePosition);
+            currentState = GameState.PLAYING;
+            controls.lock();
+            
+            // Reset ghost position
+            if (ghost) {
+                ghost.position.set(20, 0, 10);
+                ghost.visible = false;
+            }
+        }
+        
+        function winGame() {
+            currentState = GameState.WIN;
+            
+            const endTime = Date.now();
+            const elapsed = Math.floor((endTime - playerData.startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            
+            document.getElementById('stat-time').textContent = `${minutes}:${seconds}`;
+            document.getElementById('stat-notes').textContent = `${playerData.notesFound.length}/3`;
+            document.getElementById('stat-deaths').textContent = playerData.deaths;
+            
+            document.getElementById('win-screen').style.display = 'flex';
+            controls.unlock();
+        }
+        
+        function togglePause() {
+            if (currentState === GameState.PLAYING) {
+                currentState = GameState.PAUSED;
+                document.getElementById('pause-menu').style.display = 'flex';
+                controls.unlock();
+            } else if (currentState === GameState.PAUSED) {
+                currentState = GameState.PLAYING;
+                document.getElementById('pause-menu').style.display = 'none';
+                controls.lock();
+            }
+        }
+        
+        function quitToMenu() {
+            currentState = GameState.MENU;
+            document.getElementById('pause-menu').style.display = 'none';
+            document.getElementById('win-screen').style.display = 'none';
+            document.getElementById('main-menu').classList.remove('hidden');
+            showHUD(false);
+            
+            // Reset player data
+            playerData.health = playerData.maxHealth;
+            playerData.stamina = 100;
+            playerData.battery = 100;
+            playerData.notesFound = [];
+            playerData.deaths = 0;
+            
+            objectives.forEach(o => o.completed = false);
+        }
+        
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+        function setupEventListeners() {
+            // Keyboard
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            
+            // Mouse
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('click', onMouseClick);
+            
+            // Window
+            window.addEventListener('resize', onWindowResize);
+            
+            // UI buttons
+            document.getElementById('new-game-btn').addEventListener('click', startGame);
+            document.getElementById('settings-btn').addEventListener('click', () => {
+                document.getElementById('settings-panel').style.display = 'flex';
+            });
+            document.getElementById('close-settings-btn').addEventListener('click', () => {
+                document.getElementById('settings-panel').style.display = 'none';
+            });
+            document.getElementById('credits-btn').addEventListener('click', () => {
+                document.getElementById('credits-screen').style.display = 'flex';
+            });
+            document.getElementById('close-credits-btn').addEventListener('click', () => {
+                document.getElementById('credits-screen').style.display = 'none';
+            });
+            document.getElementById('resume-btn').addEventListener('click', () => togglePause());
+            document.getElementById('pause-settings-btn').addEventListener('click', () => {
+                document.getElementById('pause-menu').style.display = 'none';
+                document.getElementById('settings-panel').style.display = 'flex';
+            });
+            document.getElementById('quit-btn').addEventListener('click', quitToMenu);
+            document.getElementById('retry-btn').addEventListener('click', retryGame);
+            document.getElementById('close-note-btn').addEventListener('click', closeNote);
+            document.getElementById('main-menu-btn').addEventListener('click', quitToMenu);
+            
+            // Settings sliders
+            document.getElementById('music-volume').addEventListener('input', (e) => {
+                audioSettings.musicVolume = e.target.value / 100;
+                if (musicGain) musicGain.gain.value = audioSettings.musicVolume;
+            });
+            document.getElementById('sfx-volume').addEventListener('input', (e) => {
+                audioSettings.sfxVolume = e.target.value / 100;
+            });
+            document.getElementById('mouse-sensitivity').addEventListener('input', (e) => {
+                audioSettings.sensitivity = e.target.value / 100;
+            });
+            
+            // Controls lock
+            controls.addEventListener('lock', () => {
+                if (currentState === GameState.PLAYING) {
+                    document.getElementById('crosshair').style.display = 'block';
+                }
+            });
+            
+            controls.addEventListener('unlock', () => {
+                document.getElementById('crosshair').style.display = 'none';
+                if (currentState === GameState.PLAYING) {
+                    togglePause();
+                }
+            });
+        }
+        
+        function onKeyDown(event) {
+            if (currentState === GameState.DIALOGUE && event.code === 'Space') {
+                if (window.nextDialogue) window.nextDialogue();
+                return;
+            }
+            
+            if (event.code === 'Escape') {
+                if (currentState === GameState.PLAYING || currentState === GameState.PAUSED) {
+                    togglePause();
+                }
+                return;
+            }
+            
+            if (currentState === GameState.READING_NOTE && event.code === 'Escape') {
+                closeNote();
+                return;
+            }
+            
+            if (currentState !== GameState.PLAYING) return;
+            
+            switch (event.code) {
+                case 'KeyW': movement.forward = true; break;
+                case 'KeyS': movement.backward = true; break;
+                case 'KeyA': movement.left = true; break;
+                case 'KeyD': movement.right = true; break;
+                case 'ShiftLeft':
+                case 'ShiftRight':
+                    movement.running = true;
+                    break;
+                case 'KeyF':
+                    if (playerData.hasFlashlight && playerData.battery > 0) {
+                        flashlight.intensity = flashlight.intensity > 0 ? 0 : CONFIG.flashlight.intensity;
+                        playSound('creak', 0.3);
+                    }
+                    break;
+                case 'KeyE':
+                    checkInteraction();
+                    break;
+                case 'Digit1':
+                case 'Digit2':
+                case 'Digit3':
+                case 'Digit4':
+                    selectInventorySlot(parseInt(event.code.replace('Digit', '')) - 1);
+                    break;
+            }
+        }
+        
+        function onKeyUp(event) {
+            switch (event.code) {
+                case 'KeyW': movement.forward = false; break;
+                case 'KeyS': movement.backward = false; break;
+                case 'KeyA': movement.left = false; break;
+                case 'KeyD': movement.right = false; break;
+                case 'ShiftLeft':
+                case 'ShiftRight':
+                    movement.running = false;
+                    break;
+            }
+        }
+        
+        function onMouseMove(event) {
+            const cursor = document.getElementById('custom-cursor');
+            cursor.style.left = event.clientX + 'px';
+            cursor.style.top = event.clientY + 'px';
+        }
+        
+        function onMouseClick() {
+            if (currentState === GameState.PLAYING && !controls.isLocked) {
+                controls.lock();
+            }
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function selectInventorySlot(index) {
+            playerData.selectedSlot = index;
+            document.querySelectorAll('.inventory-slot').forEach((slot, i) => {
+                slot.classList.toggle('active', i === index);
+            });
+        }
+        
+        function checkInteraction() {
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(interactableObjects, true);
+            
+            if (intersects.length > 0) {
+                const obj = intersects[0].object;
+                const target = obj.userData.interactable ? obj : obj.parent;
+                
+                if (target.userData.interactable && intersects[0].distance < interactionDistance) {
+                    interact(target);
+                }
+            }
+        }
+        
+        // ============================================
+        // UPDATE LOOP
+        // ============================================
+        function updatePlayer(delta) {
+            if (currentState !== GameState.PLAYING) return;
+            
+            // Movement
+            velocity.x -= velocity.x * 10.0 * delta;
+            velocity.z -= velocity.z * 10.0 * delta;
+            
+            direction.z = Number(movement.forward) - Number(movement.backward);
+            direction.x = Number(movement.right) - Number(movement.left);
+            direction.normalize();
+            
+            const canRun = movement.running && playerData.stamina > 0;
+            const speed = canRun ? CONFIG.player.runSpeed : CONFIG.player.walkSpeed;
+            
+            if (movement.forward || movement.backward) {
+                velocity.z -= direction.z * speed * delta;
+            }
+            if (movement.left || movement.right) {
+                velocity.x -= direction.x * speed * delta;
+            }
+            
+            controls.moveRight(-velocity.x * delta * 50);
+            controls.moveForward(-velocity.z * delta * 50);
+            
+            // Stamina
+            if (canRun && (movement.forward || movement.backward || movement.left || movement.right)) {
+                playerData.stamina = Math.max(0, playerData.stamina - CONFIG.player.stamina.drain * delta);
+            } else {
+                playerData.stamina = Math.min(100, playerData.stamina + CONFIG.player.stamina.regen * delta);
+            }
+            document.getElementById('stamina-fill').style.width = playerData.stamina + '%';
+            
+            // Battery
+            if (flashlight.intensity > 0) {
+                playerData.battery = Math.max(0, playerData.battery - CONFIG.flashlight.drain * delta);
+                document.getElementById('battery-fill').style.width = playerData.battery + '%';
+                
+                if (playerData.battery <= 0) {
+                    flashlight.intensity = 0;
+                }
+            }
+            
+            // Footstep sounds
+            if ((movement.forward || movement.backward || movement.left || movement.right) && Math.random() < 0.03) {
+                playSound('footstep', 0.15);
+            }
+            
+            // Interaction check
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(interactableObjects, true);
+            
+            const prompt = document.getElementById('interaction-prompt');
+            if (intersects.length > 0 && intersects[0].distance < interactionDistance) {
+                const obj = intersects[0].object;
+                const target = obj.userData.interactable ? obj : obj.parent;
+                
+                if (target.userData.interactable) {
+                    document.getElementById('interact-item').textContent = target.userData.name || 'item';
+                    prompt.classList.add('visible');
+                } else {
+                    prompt.classList.remove('visible');
+                }
+            } else {
+                prompt.classList.remove('visible');
+            }
+        }
+        
+        function updateCandles(time) {
+            if (!window.candles) return;
+            
+            window.candles.forEach(candle => {
+                // Flicker effect
+                const flicker = 0.25 + Math.sin(time * 10 + candle.index) * 0.05 + Math.random() * 0.05;
+                candle.light.intensity = flicker;
+                candle.flame.position.y = candle.baseY + Math.sin(time * 8 + candle.index) * 0.003;
+            });
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+            
+            if (currentState === GameState.PLAYING) {
+                updatePlayer(delta);
+                updateGhost(delta);
+            }
+            
+            updateCandles(time);
+            
+            // Chromatic aberration based on sanity
+            const aberration = document.getElementById('chromatic-aberration');
+            if (playerData.health <= 2) {
+                aberration.style.opacity = 0.3 + Math.sin(time * 3) * 0.1;
+            } else {
+                aberration.style.opacity = 0;
+            }
+            
+            composer.render();
+        }
+        
+        // ============================================
+        // START
+        // ============================================
+        init();
+    </script>
+</body>
+</html>
